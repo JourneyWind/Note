@@ -311,6 +311,53 @@ private static final Logger log = LoggerFactory.getLogger(当前类的Class对�
 
 ### Logback
 
+使用
+
+````properties
+logging.config=classpath:logback.xml
+````
+
+````xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property name="LOG_PATTERN" value="%date{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"/>
+    <property name="FILE_PATH" value="D:/logs/demo.%d{yyyy-MM-dd}.%i.log"/>
+
+    <!-- 控制台 appender-->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- 按照上面配置的LOG_PATTERN来打印日志 -->
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 按照上面配置的FILE_PATH路径来保存日志 -->
+            <fileNamePattern>${FILE_PATH}</fileNamePattern>
+            <!-- 日志保存15天 -->
+            <maxHistory>15</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- 单个日志文件的最大，超过则新建日志文件存储 -->
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <!-- 按照上面配置的LOG_PATTERN来打印日志 -->
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!--系统操作日志-->
+    <!-- level属性：指定根logger的分配级别 -->
+    <root level="INFO">
+        <!-- ref属性：指定根logger关联的appender -->
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE" />
+    </root>
+</configuration>
+````
+
 SpringBoot默认内置了Logback日志框架，Spring Boot 集成logback需要添加 `spring-boot-starter-logging` 依赖，而此依赖已经在 `spring-boot-starter` 中添加过了，所以不用再添加此依赖了
 
 #### 配置详解
@@ -862,6 +909,19 @@ public class TestFileController {
 ````
 
 ## 拦截器
+
+如果拦截所有，静态资源也会被拦截
+
+````
+registry.addInterceptor(myInterceptor).addPathPatterns("/**")
+````
+
+static目录下静态资源放行
+
+````
+registry.addInterceptor(myInterceptor).addPathPatterns("/**")
+.excludePathPatterns("/**")
+````
 
 
 
@@ -1723,7 +1783,6 @@ public class EventWithFormat {
 打包插件
 
 ````xml
-
 <plugins>
      <plugin>
           <groupId>org.springframework.boot</groupId>
@@ -1754,11 +1813,11 @@ nohup的意思不挂服务，常驻的意思  &表示执行命令后要生成日
 
 ````xml
 <!-- 排除springboot内置的tomcat干扰 -->
-<dependency>	
-	<groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-tomcat</artifactId>
-	<scope>provided</scope>
-</dependency>
+    <dependency>	
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-tomcat</artifactId>
+        <scope>provided</scope>
+    </dependency>
 
 <!--去掉使用内嵌tomcat解析jsp-->
         <dependency>
