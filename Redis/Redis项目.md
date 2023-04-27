@@ -34,7 +34,7 @@
 
 基于List来完成点赞列表的操作，同时基于SortedSet来完成点赞的排行榜功能
 
-![image-20230210163403358](Redis项目.assets\image-20230210163403358.png)
+![image-20230210163403358](Redis项目.assets/image-20230210163403358.png)
 
 
 
@@ -42,7 +42,7 @@
 
 ### 1.1 项目
 
-<img src="Redis项目.assets\image-20230211001232748.png" alt="image-20230211001232748" style="zoom:67%;" />
+<img src="Redis项目.assets/image-20230211001232748.png" alt="image-20230211001232748" style="zoom:67%;" />
 
 #### 1.1.1 有关当前模型
 
@@ -50,7 +50,7 @@
 
 在tomcat支撑起并发流量后，我们如果让tomcat直接去访问Mysql，根据经验Mysql企业级服务器只要上点并发，一般是16或32 核心cpu，32 或64G内存，像企业级mysql加上固态硬盘能够支撑的并发，大概就是4000起~7000左右，上万并发， 瞬间就会让Mysql服务器的cpu，硬盘全部打满，容易崩溃，所以我们在高并发场景下，会选择使用mysql集群，同时为了进一步降低Mysql的压力，同时增加访问的性能，我们也会加入Redis，同时使用Redis集群使得Redis对外提供更好的服务。
 
-![image-20230211001405091](Redis项目.assets\image-20230211001405091.png)
+![image-20230211001405091](Redis项目.assets/image-20230211001405091.png)
 
 项目：http://localhost:8081/shop-type/list
 
@@ -76,13 +76,13 @@ http://127.0.0.1:8080
 
 用户在请求时候，会从cookie中携带者JsessionId到后台，后台通过JsessionId从session中拿到用户信息，如果没有session信息，则进行拦截，如果有session信息，则将用户信息保存到threadLocal中，并且放行
 
-![image-20230211001712534](Redis项目.assets\image-20230211001712534.png)
+![image-20230211001712534](Redis项目.assets/image-20230211001712534.png)
 
 ### 1.3  实现发送短信验证码功能
 
 **页面流程**
 
-![image-20230211001801711](Redis项目.assets\image-20230211001801711.png)
+![image-20230211001801711](Redis项目.assets/image-20230211001801711.png)
 
 * 发送验证码
 
@@ -143,7 +143,7 @@ http://127.0.0.1:8080
 
 **tomcat的运行原理**
 
-![image-20230211001851230](Redis项目.assets\image-20230211001851230.png)
+![image-20230211001851230](Redis项目.assets/image-20230211001851230.png)
 
 当用户发起请求时，会访问我们tomcat注册的端口，任何程序想要运行，都需要有一个线程对当前端口号进行监听，tomcat也不例外，当监听线程知道用户想要和tomcat连接连接时，那会由监听线程创建socket连接，socket都是成对出现的，用户通过socket互相传递数据，当tomcat端的socket接受到数据后，此时监听线程会从tomcat的线程池中取出一个线程执行用户请求，在我们的服务部署到tomcat后，线程会找到用户想要访问的工程，然后用这个线程转发到工程中的controller，service，dao中，并且访问对应的DB，在用户执行完请求后，再统一返回，再找到tomcat端的socket，再将数据写回到用户端的socket，完成请求和响应
 
@@ -153,7 +153,7 @@ http://127.0.0.1:8080
 
 无论是put方法还是get方法， 都是先从获得当前用户的线程，然后从线程中取出线程的成员变量map，只要线程不一样，map就不一样，所以可以通过这种方式来做到线程隔离
 
-![image-20230211002017469](Redis项目.assets\image-20230211002017469.png)
+![image-20230211002017469](Redis项目.assets/image-20230211002017469.png)
 
 拦截器代码
 
@@ -260,7 +260,7 @@ public class UserHolder {
 
 所以咱们后来采用的方案都是基于redis来完成，我们把session换成redis，redis数据本身就是共享的，就可以避免session共享的问题了
 
-![image-20230211002100355](Redis项目.assets\image-20230211002100355.png)
+![image-20230211002100355](Redis项目.assets/image-20230211002100355.png)
 
 ### 1.7 Redis代替session的业务流程
 
@@ -268,7 +268,7 @@ public class UserHolder {
 
 首先我们要思考一下利用redis来存储数据，那么到底使用哪种结构呢？由于存入的数据比较简单，我们可以考虑使用String，或者是使用哈希，如下图，如果使用String，就会多占用一点空间，如果使用哈希，则他的value中只会存储他数据本身，如果不是特别在意内存，其实使用String就可以。
 
-![1653319261433](Redis项目.assets\1653319261433.png)
+![1653319261433](Redis项目.assets/1653319261433.png)
 
 #### 1.7.2 设计key的具体细节
 
@@ -286,7 +286,7 @@ public class UserHolder {
 
 当注册完成后，用户去登录会去校验用户提交的手机号和验证码，是否一致，如果一致，则根据手机号查询用户信息，不存在则新建，最后将用户数据保存到redis，并且生成token作为redis的key，当我们校验用户是否登录时，会去携带着token进行访问，从redis中取出token对应的value，判断是否存在这个数据，如果没有则拦截，如果存在则将其保存到threadLocal中，并且放行。
 
-![1653319474181](Redis项目.assets\1653319474181.png)
+![1653319474181](Redis项目.assets/1653319474181.png)
 
 ### 1.8 基于Redis实现短信登录
 
@@ -344,13 +344,13 @@ public Result login(LoginFormDTO loginForm, HttpSession session) {
 
 在这个方案中，他确实可以使用对应路径的拦截，同时刷新登录token令牌的存活时间，但是现在这个拦截器他只是拦截需要被拦截的路径，假设当前用户访问了一些不需要拦截的路径，那么这个拦截器就不会生效，所以此时令牌刷新的动作实际上就不会执行，所以这个方案他是存在问题的
 
-![1653320822964](Redis项目.assets\1653320822964.png)
+![1653320822964](Redis项目.assets/1653320822964.png)
 
 ####  1.9.2 优化方案
 
 既然之前的拦截器无法对不需要拦截的路径生效，那么我们可以添加一个拦截器，在第一个拦截器中拦截所有的路径，把第二个拦截器做的事情放入到第一个拦截器中，同时刷新令牌，因为第一个拦截器有了threadLocal的数据，所以此时第二个拦截器只需要判断拦截器中的user对象是否存在即可，完成整体刷新功能。
 
-![1653320764547](Redis项目.assets\1653320764547.png)
+![1653320764547](Redis项目.assets/1653320764547.png)
 
 #### 1.9.3 代码 
 
@@ -444,7 +444,7 @@ public class LoginInterceptor implements HandlerInterceptor {
 
 但是缓存也会增加代码复杂度和运营的成本:
 
-![1653320764547](Redis项目.assets\image-20230214155014123.png)
+![1653320764547](Redis项目.assets/image-20230214155014123.png)
 
 #### 2.1.2 如何使用缓存
 
