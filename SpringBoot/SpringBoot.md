@@ -313,6 +313,19 @@ private static final Logger log = LoggerFactory.getLogger(当前类的Class对�
 
 使用
 
+````xml
+  <dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+    <version>1.2.10</version>
+  </dependency>
+  <dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-core</artifactId>
+    <version>1.2.10</version>
+  </dependency>
+````
+
 ````properties
 logging.config=classpath:logback.xml
 ````
@@ -1783,6 +1796,40 @@ public class EventWithFormat {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING,pattern = "yyyy-MM-dd HH:mm:ss")
     public Date eventDate;
+}
+````
+
+## 发送邮件
+
+````xml
+  <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-mail</artifactId>
+    <version>${springboot.version}</version>
+  </dependency>
+````
+
+````java
+	@Resource
+    private JavaMailSender mailSender;
+
+	MimeMessage message = mailSender.createMimeMessage();
+    MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(message, true);
+    mimeMessageHelper.setFrom(1303076346@qq.com);//发送邮件的邮箱
+    mimeMessageHelper.setTo(email);//接收邮件的邮箱
+    EmailSendDto emailSendDto = new EmailSendDto();
+    mimeMessageHelper.setSubject(emailSendDto.getEmailTitle());
+    mimeMessageHelper.setText(String.format(emailSendDto.getEmailContent(), code));//code:验证码
+    mimeMessageHelper.setSentDate(new Date());
+    mailSender.send(message);
+
+
+@Data
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class EmailSendDto implements Serializable {
+    private String emailTitle = "邮箱验证码";
+    private String emailContent = "您好，邮箱验证码为:%s,有效期5分钟";
+    private Integer userTotalSpace = 5;
 }
 ````
 
