@@ -333,22 +333,23 @@ flush privileges;刷新权限
 
 Other
 
-````
-下载mysql8
+````markdown
+cd /usr/local/mysql
+# 下载mysql8
 wget https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.27-linux-glibc2.12-x86_64.tar.xz
-解压mysql8
+# 解压mysql8
 xz -d mysql-8.0.27-linux-glibc2.12-x86_64.tar.xz
 tar -xvf mysql-8.0.27-linux-glibc2.12-x86_64.tar
-将/usr/local/src下的mysql-8.0.27-linux-glibc2.12-x86_64.tar.xz文件夹内容移动到/usr/local/mysql下
+# 将/usr/local/src下的mysql-8.0.27-linux-glibc2.12-x86_64.tar.xz文件夹内容移动到/usr/local/mysql下
 mkdir /usr/local/mysql
 mv /usr/local/src/mysql-8.0.27-linux-glibc2.12-x86_64/* /usr/local/mysql
 cd /usr/local/mysql
-创建用户组及用户和密码
+# 创建用户组及用户和密码
 groupadd mysql
 useradd -g mysql mysql
-授权用户
+# 授权用户
 chown -R mysql.mysql /usr/local/mysql
-编辑my.cnf文件
+# 编辑my.cnf文件
 vim /etc/my.cnf
 
 [mysqld]
@@ -386,31 +387,32 @@ port=3306
 default-character-set=utf8
 
 
-进入到bin目录下
+# 进入到bin目录下
 cd bin
-初始化基础信息，最后一行后面会有个随机的初始密码保存下来一会登录要用(如果忘记了就删掉data重新初始化)
+# 初始化基础信息，最后一行后面会有个随机的初始密码保存下来一会登录要用(如果忘记了就删掉data重新初始化)
 ./mysqld --initialize
- 如果提示 ：./mysqld: error while loading shared libraries: libnuma.so.1: cannot open shared object file: No such file or directory
-就执行下下面这个再执行初始化
+# 如果提示 ：./mysqld: error while loading shared libraries: libnuma.so.1: cannot open shared object file: No such file or directory
+# 就执行下下面这个再执行初始化
 yum install -y libaio
 yum -y install numactl
-添加mysqld服务到系统
-先返回到mysql目录
+# 添加mysqld服务到系统
+# 先返回到mysql目录
 cd ..
 cp -a ./support-files/mysql.server /etc/init.d/mysql
-授权以及添加服务
+# 授权以及添加服务
 chmod +x /etc/init.d/mysql
 chkconfig --add mysql
-启动mysql
+# 启动mysql
 service mysql start
-将mysql添加到命令服务
+# 将mysql添加到命令服务
 ln -s /usr/local/mysql/bin/mysql /usr/bin
-登录mysql
+# 登录mysql
 mysql -uroot -p
-更改root用户密码, 注意语句后的; 执行语句忘记写了 可以补个空的;回车也可以将语句执行
+# 输入刚才记下的密码
+# 更改root用户密码, 注意语句后的; 执行语句忘记写了 可以补个空的;回车也可以将语句执行
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '你的密码';
 flush privileges;
-更改root连接权限
+# 更改root连接权限
 mysql> use mysql;
 mysql> update user set host='%' where user = 'root';
 mysql> flush privileges;

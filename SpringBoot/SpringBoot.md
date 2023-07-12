@@ -870,7 +870,7 @@ public class TestFileController {
 @RequestMapping("/DownLoad")
     public void downLoad(@RequestParam("filename") String fileName, HttpServletResponse response) throws IOException {
         File file = new File(upLoadFile,fileName);
-        //判断文件夹是否存在
+        //判断文件是否存在
         if (!file.exists()){
             response.getWriter().write("下载的文件不存在");
             return "false";
@@ -908,6 +908,10 @@ public class TestFileController {
 一次请求，一个request对应一个response，下载文件需要用到response将文件以流的形式响应，无法再用response进行页面跳转
 ````
 
+
+
+
+
 ## 拦截器
 
 如果拦截所有，静态资源也会被拦截
@@ -919,8 +923,14 @@ registry.addInterceptor(myInterceptor).addPathPatterns("/**")
 static目录下静态资源放行
 
 ````
+spring:
+  mvc:
+    static-path-pattern: /local
+
 registry.addInterceptor(myInterceptor).addPathPatterns("/**")
-.excludePathPatterns("/**")
+.excludePathPatterns("/local/**")
+
+配合使用
 ````
 
 

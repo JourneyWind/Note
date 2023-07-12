@@ -233,7 +233,9 @@ public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHand
 
 <img src="SpringSecuritys.assets/image-20230414002306786.png" alt="image-20230414002306786" style="zoom:80%;" />
 
-![image-20230414002323343](SpringSecuritys.assets/image-20230414002323343.png)
+````
+.failureHandler(new MyAuthenticationFailureHandler())//认证失败时处理 前后端分离解决方案
+````
 
 ````java
 //或者
@@ -254,7 +256,14 @@ public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHand
 
 ### 注销登录
 
-![image-20230414002501682](SpringSecuritys.assets/image-20230414002501682.png)
+````java
+.and()
+.formLogin()
+//...
+.and()
+.logout()
+.logoutUrl("/logout")
+````
 
 ![image-20230414002646044](SpringSecuritys.assets/image-20230414002646044.png)
 
@@ -711,7 +720,7 @@ CSRF攻击的根源在于浏览器默认的身份验证机制(自动携带当前
 
 #### 令牌同步模式
 
-这是目前主流的CSRF 攻击防御方案。具体的操作方式就是在每一个HTTP请求中，除了默认自动携带的Cookie参数之外，再提供一个安全的、随机生成的宇符串，我们称之为CSRF令牌。这个CSRF令牌由服务端生成，生成后在HtpSession中保存一份。当前端请求到达后，将请求携带的CSRF令牌信息和服务端中保存的令牌进行对比，如果两者不相等，则拒绝掉该HITTP请求。
+这是目前主流的CSRF 攻击防御方案。具体的操作方式就是在每一个HTTP请求中，除了默认自动携带的Cookie参数之外，再提供一个安全的、随机生成的宇符串，我们称之为CSRF令牌。这个CSRF令牌由服务端生成，生成后在HttpSession中保存一份。当前端请求到达后，将请求携带的CSRF令牌信息和服务端中保存的令牌进行对比，如果两者不相等，则拒绝掉该HITTP请求。
 
 > 注意:考虑到会有一些外部站点链接到我们的网站，所以我们要求请求是幂等的，这样对子HEAD、OPTIONS、TRACE等方法就没有必要使用CSRF 令牌了，强行使用可能会导致令牌泄露!
 
@@ -808,7 +817,7 @@ Spring Security中提供的权限管理策略主要有两种类型:
 
 #### 基于AOP的权限管理
 
-基于方法的权限管理主要是通过AOP来实现的，Spring Security中通过MethodSecurityInterceptor 来提供相关的实现。不同在于Filter Security Interceptor只是在请求之前进行前置处理，MethodSecurityinterceptor除了前置处理之外还可以进行后置处理。前置处理就是在请求之前判断是否具备相应的权限，后置处理则是对方法的执行结果进行二次过滤。前置处理和后置处理分别对应了不同的实现类。
+基于方法的权限管理主要是通过AOP来实现的，Spring Security中通过MethodSecurityInterceptor 来提供相关的实现。不同在于Filter SecurityInterceptor只是在请求之前进行前置处理，MethodSecurityinterceptor除了前置处理之外还可以进行后置处理。前置处理就是在请求之前判断是否具备相应的权限，后置处理则是对方法的执行结果进行二次过滤。前置处理和后置处理分别对应了不同的实现类。
 
 ##### @EnableGlobalMethodSecurity
 
@@ -861,6 +870,50 @@ AccesDecisionVoter和AccessDecisionNanager都有众多的实现类，在AccessDe
 
 ![image-20230415123650900](SpringSecuritys.assets/image-20230415123650900.png)
 
+
+
+**其他**
+
+SecurityConfig
+
+````
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+````
+
+Controller
+
+```java
+@PreAuthorize("@ps.hasPermission('content:category:export')")
+@GetMapping("/export")
+public void excelExport(HttpServletResponse response){
+    categoryService.excelExport(response);
+}
+```
+
+自定义权限认证
+
+PermissionService
+
+```java
+@Service("ps")
+public class PermissionService {
+    /**
+     * 判断当前用户是否具有某个权限
+     *
+     * @param permission 要判断的权限
+     * @return
+     */
+    public boolean hasPermission(String permission) {
+        //如果是超级管理员,默认拥有所有权限
+        if (SecurityUtils.isAdmin()) {
+            return true;
+        }
+        List<String> permissions = SecurityUtils.getLoginUser().getPermissions();
+        return permissions.contains(permission);
+    }
+}
+```
+
 ## 异常处理
 
 #### 认证异常
@@ -909,21 +962,307 @@ public class MyAccessDeniedHandler implements AccessDeniedHandler {
 OAuth 是一个开放标准，该标准允许用户让第三方应用访问该用户在某一网站上存储的私密资源（如头像、照片、视频等)，并且在这个过程中无须将用户名和密码提供给第三方应用。通过令牌(token)可以实现这一功能，每一个令牌授权一个特定的网站在特定的时段内允许可特定的资源。OAuth让用户可以授权第三方网站灵活访问它们存储在另外一些资源服务器上的特定信息，而非所有内容。对于用户而言，我们在互联网应用中最常见的OAuth应用就是各种第三方登录，例如QQ授权登录、微信授权登录、微博授权登录、GitHub授权登录等。
 例如用户想登录 Ruby China，传统方式是使用用户名密码但是这样并不安全，因为网站会存储你的用户名密码，这样可能会导致密码泄露。这种授权方式安全隐患很大，如果使用OAuth协议就能很好地解决这一问题。
 
+### 四种授权模式
+
+参考：http://www.ruanyifeng.com/blog/2019/04/oauth-grant-types.html
+
+1.**授权码模式**：常见的第三方平台登录功能基本都是使用这种模式。
+2.**简化模式**：简化模式是不需要第三方服务端参与，直接在浏览器中向授权服务器申请令牌(token),如果网站是纯静态页面，则可以采用这种方式。
+3.**密码模式**：密码模式是用户把用户名/密码直接告诉客户端，客户端使用这些信息后授权服务器申请令牌(token)。这需要用户对客户端高度信任，例如客户端应用和服务提供商就是同一家公司。
+4.**客户端模式**：客户端模式是指客户端使用自己的名义而不是用户的名义向服务提估者申请授权。严格来说，客户端模式并不能算作OAUth协议解决问题的一种解决方案，但是对于开发者而言，在一些为移动端提供的授权服务器上使用这种模式还是非常方便的。
+
+无论哪种授权模式，其授权流程都是相似的，只不过在个别步骤上有万差异而已。流程图如下:
+
+<img src="SpringSecuritys.assets/image-20230613024248924.png" alt="image-20230613024248924" style="zoom:80%;" />
+
+````
+(A)用户打开客户端以后，客户端要求用户给予授权。
+(B)用户同意给予客户端授权。
+(C)客户端使用上一步获得的授权，向认证服务器申请令牌。
+(D)认证服务器对客户端进行认证以后，确认无误，同意发放令牌。
+(E)客户端使用令牌，向资源服务器申请获取资源。
+(F)资源服务器确认令牌无误，同意向客户端开放资源。
+````
+
+### 标准接口
+
+- /oauth/authorize:授权端点
+- /oauth/token:获取令牌端点
+- /oauth/confirm_access:用户确认授权提交端点
+- /oauth/error:授权服务错误信息端点
+- /oauth/check_token:用于资源服务访问的令牌解析端点
+- /oauth/token_key:提供公有密匙的端点，如果使用JWT令牌的话
+
+### Oauth Client
+
+依赖
+
+````xml
+<dependency>
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-starter-oauth2-client</artifactId>
+</dependency>
+````
+
+测试类
+
+````java
+@RestController
+oublic class HelloController{
+@GetMapping("/hello")
+public DefaultOAuth2User hello(){
+System.out.println("hello");
+Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+return (DefaultOAuth2User)authentication.getPrincipal();
+````
+
+security-config
+
+````java
+//用来对spring security进行自定义配置
+@Configuration
+public class SecurityConfig extends WebSecurityConfigurerAdapter{
+@Override
+protected void configure(HttpSecurity http)throws Exception{
+http.authorizeRequests()
+.anyRequest().authenticated()
+.and()
+.oauth2Login();//使用oauth 2 认证   置文件中配置认证服务
+````
+
+配置
+
+````xml
+spring.security.oauth2.client.registration.github.client-id=86ed3f9d89225f7c09bf
+spring.security.oauth2.client.registration.github.client-secret=aaa44b2675a7b636b1b43371e509e88ee9013816
+#一定要与重定向回调URL一致
+spring.security.oauth2.client.registration.github.redirect-uri=http://localhost:8080/login/oauth2/code/github
+````
+
+![image-20230711222108079](SpringSecuritys.assets/image-20230711222108079.png)
+
+## JWT
+
+````xml
+        <!--jwt依赖-->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt</artifactId>
+        </dependency>
+````
+
+### jwt工具类
+
+````java
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
+import java.util.Date;
+import java.util.UUID;
+
+/**
+ * JWT工具类
+ */
+public class JwtUtils {
+    //JWT有效期
+    public static final Long JWT_TTL = 60 * 60 *1000L *24;// 60 * 60 *1000  一个小时
+    //设置签名信息(秘钥明文)
+    public static final String JWT_KEY = "wind";
+
+    /**
+     * 生成uuid
+     * @return {@link String}
+     */
+    public static String getUUID(){
+        String token = UUID.randomUUID().toString().replaceAll("-", "");
+        return token;
+    }
+
+    /**
+     * 生成jtw，无过期时间，则使用设置的时间
+     * @param subject token中要存放的数据（json格式）
+     * @return
+     */
+    public static String createJWT(String subject) {
+        return getJwtBuilder(subject, JwtUtils.JWT_TTL, getUUID());
+    }
+
+    /**
+     * 生成jtw，有过期时间。默认为1个小时
+     * @param subject token中要存放的数据（json格式）
+     * @param ttlMillis token超时时间
+     * @return
+     */
+    public static String createJWT(String subject, Long ttlMillis) {
+        return getJwtBuilder(subject, ttlMillis, getUUID());// 设置过期时间
+    }
 
 
+    /**
+     * 生成jtw，自定义过期时间。
+     * @param id
+     * @param subject
+     * @param ttlMillis
+     * @return
+     */
+    public static String createJWT(String id, String subject, Long ttlMillis) {
+        return getJwtBuilder(subject, ttlMillis, id);// 设置过期时间
+    }
 
 
+    /**
+     * 创建JWT
+     * @param subject   主题
+     * @param ttlMillis ttl米尔斯
+     * @param uuid      uuid
+     * @return {@link String}
+     */
+    private static String getJwtBuilder(String subject, Long ttlMillis, String uuid) {
+//        1.根据签名信息生成加密后的秘钥 secretKey
+        SecretKey secretKey = generalKey();
+//        2.获取到当前时间戳
+        long nowMillis = System.currentTimeMillis();
+//        3.签发时间
+        Date now = new Date(nowMillis);
+//        4.JWT的过期时间：当前时间戳+JWT过期时间
+        long expMillis = nowMillis + ttlMillis;
+        Date expDate = new Date(expMillis);
 
+        return Jwts.builder()
+//                唯一ID
+                .setId(uuid)
+//                主题：可以是JSON数据
+                .setSubject(subject)
+//                签发者
+                .setIssuer("journey")
+//                签发时间
+                .setIssuedAt(now)
+//                使用HS256对称加密算法签名，第二个参数为秘钥，根据密钥进行加密
+                .signWith(SignatureAlgorithm.HS256, secretKey)
+//                设置JWT过期时间
+                .setExpiration(expDate)
+//                对JWT的三部分进行拼接
+                .compact();
+    }
 
+    /**
+     * 根据签名信息生成加密后的秘钥 secretKey
+     * @return
+     */
+    public static SecretKey generalKey() {
+        byte[] encodedKey = Base64.getDecoder().decode(JwtUtils.JWT_KEY);
+        SecretKey key = new SecretKeySpec(encodedKey, 0, encodedKey.length, "AES");
+        return key;
+    }
 
+    /**
+     * 解析JWT
+     * @param jwt
+     * @return
+     * @throws Exception
+     */
+    public static Claims parseJWT(String jwt) throws Exception {
+//        根据签名信息生成加密后的秘钥 secretKey
+        SecretKey secretKey = generalKey();
+        return Jwts.parser()
+//                根据密钥进行解密
+                .setSigningKey(secretKey)
+//                JWT对象
+                .parseClaimsJws(jwt)
+                .getBody();
+    }
+}
+````
 
+### 过滤器
 
+````java
+import com.alibaba.fastjson.JSONObject;
+import com.blog.domain.entity.LoginUser;
+import com.blog.utils.JwtUtils;
+import com.blog.utils.RedisCache;
+import com.blog.utils.ResponseResult;
+import com.blog.utils.WebUtils;
+import io.jsonwebtoken.Claims;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+import javax.annotation.Resource;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Objects;
+import static com.blog.constants.CommonConstants.ADMIN_USER_TOKEN_KEY;
+import static com.blog.enums.AppHttpCodeEnum.NEED_LOGIN;
 
+@Component
+public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
 
+    @Resource
+    private RedisCache redisCache 
 
+    /**
+     * 解析token过滤器
+     * @param request
+     * @param response
+     * @param filterChain
+     * @throws ServletException
+     * @throws IOException
+     */
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        //1.获取请求头中的token
+        String token = request.getHeader("token");
+        if (!StringUtils.hasText(token)) {
+            //1.1没有token直接放行
+            filterChain.doFilter(request, response);
+            return;
+        }
+        //2.解析获得userId
+        Claims claims = null;
+        try {
+            claims = JwtUtils.parseJWT(token);
+        } catch (Exception e) {
+            e.printStackTrace();
+            //2.1token已经过期(过期时间为1h)
+            ResponseResult errorResult = ResponseResult.errorResult(NEED_LOGIN);
+            WebUtils.renderString(response, JSONObject.toJSONString(errorResult));
+            return;
+        }
+        String userId = claims.getSubject();
 
+        //3.从redis中获取到用户信息
+        LoginUser loginUser = redisCache.getCacheObject(ADMIN_USER_TOKEN_KEY + userId);
+        if (Objects.isNull(loginUser)) {
+            //3.1缓存过期
+            ResponseResult errorResult = ResponseResult.errorResult(NEED_LOGIN);
+            WebUtils.renderString(response, JSONObject.toJSONString(errorResult));
+            return;
+        }
 
+        //4.获取用户权限
+        Collection<? extends GrantedAuthority> authorities = loginUser.getAuthorities();
+        //5.封装Authentication对象，将用户信息存入SecurityContextHolder中
+        UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken
+                = new UsernamePasswordAuthenticationToken(loginUser, null, authorities);
+        SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+        filterChain.doFilter(request, response);
+    }
+}
+````
 
+````java
+security.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
+````
 
 
 
