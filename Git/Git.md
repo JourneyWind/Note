@@ -148,7 +148,7 @@ git push 别名 分支
 
 ## SSH
 
-ls -la ~/.ssh
+ls -la ~./ssh
 
 ![image-20230424204616217](Git.assets/image-20230424204616217.png)
 
